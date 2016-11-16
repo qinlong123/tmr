@@ -1,0 +1,177 @@
+C51 COMPILER V9.51   EEPROM                                                                06/27/2016 11:36:09 PAGE 1   
+
+
+C51 COMPILER V9.51, COMPILATION OF MODULE EEPROM
+OBJECT MODULE PLACED IN eeprom.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE eeprom.c COMPACT BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "eeprom.H"
+   2          #include "stc12c56.h"
+   3          #include "INTRINS.H"
+   4          
+   5          #define uint unsigned int
+   6          #define uchar unsigned char
+   7          #define ulong unsigned long
+   8          //警报界限
+   9          
+  10          /*EEPROM处理函数(不可修改)*/
+  11          //eeprom------------------------------------------
+  12          #define RdCommand 0x01 //定义ISP的操作命令
+  13          #define PrgCommand 0x02
+  14          #define EraseCommand 0x03 
+  15          #define Error 1
+  16          #define Ok 0
+  17          #define WaitTime 0x03 //定义CPU的等待时间
+  18          
+  19          void mdelay(uint n)
+  20          {
+  21   1          uint x;
+  22   1          while (n--)
+  23   1          {
+  24   2              x = 5000;
+  25   2              while (x--);
+  26   2          }
+  27   1      }
+  28          //eeprom-------------------------------------------
+  29          /*打开 ISP,IAP 功能*/
+  30          void ISP_IAP_enable(void)
+  31          {
+  32   1         EA = 0;       //关中断   
+  33   1         ISP_CONTR = ISP_CONTR & 0x18;    //0001,1000 
+  34   1         ISP_CONTR = ISP_CONTR | WaitTime;  //写入硬件延时 
+  35   1         ISP_CONTR = ISP_CONTR | 0x80;      //ISPEN=1  
+  36   1      }
+  37          
+  38          /*关闭 ISP,IAP 功能*/
+  39          void ISP_IAP_disable(void)
+  40          {
+  41   1         ISP_CONTR = ISP_CONTR & 0x7f; //ISPEN = 0 
+  42   1         ISP_TRIG = 0x00;
+  43   1         EA   =   1;   //开中断 
+  44   1      }
+  45          
+  46          /*触发ISP*/
+  47          void ISPgoon(void)
+  48          {
+  49   1         ISP_IAP_enable();  //打开 ISP,IAP 功能 
+  50   1         ISP_TRIG = 0x46; //触发ISP_IAP命令字节1 
+  51   1         ISP_TRIG = 0xb9; //触发ISP_IAP命令字节2 
+  52   1         _nop_();
+  53   1      }
+  54          
+  55          /*字节读*/
+C51 COMPILER V9.51   EEPROM                                                                06/27/2016 11:36:09 PAGE 2   
+
+  56          unsigned char byte_read(uchar high_add,uchar low_add)
+  57          {
+  58   1         ISP_ADDRH = high_add;  //地址赋值 
+  59   1         ISP_ADDRL = low_add;
+  60   1         ISP_CMD   = ISP_CMD & 0xf8;    //清除低3位  
+  61   1         ISP_CMD   = ISP_CMD | RdCommand; //写入读命令 
+  62   1         ISPgoon();           //触发执行  
+  63   1         ISP_IAP_disable();     //关闭ISP,IAP功能 
+  64   1         return (ISP_DATA);     //返回读到的数据
+  65   1      }
+  66          
+  67          /*扇区擦除*/
+  68          void SectorErase(uchar high_add,uchar low_add)
+  69          {
+  70   1         ISP_ADDRH = high_add;  //地址赋值
+  71   1         ISP_ADDRL = low_add;
+  72   1         ISP_CMD = ISP_CMD & 0xf8;      //清空低3位
+  73   1         ISP_CMD = ISP_CMD | EraseCommand;  //擦除命令3
+  74   1         ISPgoon();                 //触发执行
+  75   1         _nop_();
+  76   1         ISP_IAP_disable();           //关闭ISP,IAP功能
+  77   1      }
+  78          
+  79          /*字节写*/
+  80          void byte_write(uchar str, uchar high_add,uchar low_add)
+  81          {
+  82   1         ISP_ADDRH = high_add;  //地址赋值
+  83   1         ISP_ADDRL = low_add;
+  84   1         ISP_CMD  = ISP_CMD & 0xf8;       //清低3位
+  85   1         ISP_CMD  = ISP_CMD | PrgCommand;   //写命令2
+  86   1         ISP_DATA = str;            //写入数据准备
+  87   1         ISPgoon();                 //触发执行
+  88   1         _nop_();
+  89   1         ISP_IAP_disable();           //关闭IAP功能
+  90   1      }
+  91          
+  92          /*EEPROM处理函数end(不可修改)*/
+  93          /**************************************************/
+  94          /***************************************************************/
+  95          
+  96          /****EEPROM相关值处理函数***/
+  97          
+  98          
+  99          void writein(uchar a[],uchar b1,uchar b)   //a wei
+ 100          {         
+ 101   1        byte_write(a[0],b1,b);
+ 102   1        byte_write(a[1],b1,b+1);
+ 103   1        byte_write(a[2],b1,b+2);
+ 104   1        byte_write(a[3],b1,b+3);
+ 105   1        byte_write(a[4],b1,b+4);
+ 106   1      }
+ 107          
+ 108          void Refresh_all_k(char b,char b1)   //a wei
+ 109          {         
+ 110   1        byte_write(0x00,b1,b);
+ 111   1        byte_write(0x00,b1,b+1);
+ 112   1        byte_write(0x00,b1,b+2);
+ 113   1        byte_write(0x00,b1,b+3);
+ 114   1        byte_write(0x00,b1,b+4);
+ 115   1      }
+ 116          //SectorErase(XQ4,0x00);//写入前要清扇区
+ 117          /*-----------------------------------------------28------------------------
+C51 COMPILER V9.51   EEPROM                                                                06/27/2016 11:36:09 PAGE 3   
+
+ 118          read_uSvhr_max: 读最大值  <06.1.3>      
+ 119          输入参数：无
+ 120          返回值  ：无 
+ 121          最后修改日期：2012-02-17 
+ 122          修改人  ：skyman
+ 123          作用  ：读最大值  
+ 124          -----------------------------------------------------------------------*/
+ 125          unsigned char read_uSvhr_max(uchar b1 ,uchar k, uchar count)//读出数组count 下标   b1星期 地址 k 当天时间段
+ 126          {
+ 127   1        //uchar u1,u2,u3,u4;
+ 128   1        uchar dk;
+ 129   1      
+ 130   1        if(k == 1)
+ 131   1        {   
+ 132   2          dk = byte_read(b1,count);
+ 133   2        }
+ 134   1        if(k == 2)
+ 135   1        {
+ 136   2          dk = byte_read(b1,count+5);
+ 137   2        }
+ 138   1        if(k == 3)
+ 139   1        {
+ 140   2          dk = byte_read(b1,count+10);
+ 141   2        }
+ 142   1        if(k == 4)
+ 143   1        {
+ 144   2          dk = byte_read(b1,count+15);
+ 145   2        }
+ 146   1        
+ 147   1        //rekey = u1+(u2<<8)+(u3<<16)+(u4<<24);
+ 148   1        return (dk);        
+ 149   1      }
+ 150          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    359    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----       5
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

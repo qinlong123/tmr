@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"51uart.obj" 
+TO "51uart" 
+RAMSIZE(256) 

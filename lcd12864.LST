@@ -1,0 +1,252 @@
+C51 COMPILER V9.51   LCD12864                                                              06/27/2016 11:36:09 PAGE 1   
+
+
+C51 COMPILER V9.51, COMPILATION OF MODULE LCD12864
+OBJECT MODULE PLACED IN lcd12864.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE lcd12864.c COMPACT BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "lcd12864.h"
+   2          #include "pin.h"
+   3          #include "pindef.h"
+   4          #include "write_chinese.h"
+   5          
+   6          //**************delay************************************
+   7          void delay_nms(unsigned int n)
+   8          {
+   9   1        unsigned int i,j;
+  10   1        for(i=n;i>0;i--)
+  11   1        {
+  12   2          for(j=125;j>0;j--)
+  13   2          {
+  14   3          }
+  15   2        }
+  16   1      }
+  17          
+  18          //***************send_data********************************
+  19          void data_send(unsigned char dat)
+  20          { 
+  21   1        unsigned char s,temp;
+  22   1        int i;
+  23   1        SCL_LOW;
+  24   1        s=dat;
+  25   1        for(i=8;i>0;i--)
+  26   1          { 
+  27   2            nop();
+  28   2            nop();
+  29   2            temp=s&0x80;
+  30   2            if(temp)
+  31   2                {DI_HIGH;}
+  32   2            else
+  33   2                {DI_LOW;}
+  34   2          SCL_LOW;
+  35   2            s=s<<1;
+  36   2          SCL_HIGH;
+  37   2          }
+  38   1      }
+  39          
+  40          //***************write command*****************************
+  41          void wr_com(unsigned char com)
+  42          {
+  43   1        A0_LOW;
+  44   1        CS_LOW;
+  45   1        data_send(com);
+  46   1        CS_HIGH;
+  47   1      }
+  48          //***************write data********************************
+  49          void wr_data(unsigned char dat)
+  50          {
+  51   1      A0_HIGH;
+  52   1      CS_LOW;
+  53   1      data_send(dat);
+  54   1      CS_HIGH;
+  55   1      }
+C51 COMPILER V9.51   LCD12864                                                              06/27/2016 11:36:09 PAGE 2   
+
+  56          
+  57          //清屏函数
+  58          void LCD_clear()
+  59          {
+  60   1      
+  61   1         unsigned char seg;
+  62   1         unsigned char page;
+  63   1         for(page=0xb0;page<0xb8;page++)
+  64   1           {
+  65   2               wr_com(page);
+  66   2               wr_com(0x10);
+  67   2               wr_com(0x00);
+  68   2               for(seg=0;seg<128;seg++)
+  69   2                  { wr_data(0x00);
+  70   3                    }
+  71   2             }
+  72   1      }
+  73          
+  74          //**********************************************************
+  75          //设置坐标函数
+  76          void LCD_set_XY(unsigned char X, unsigned char Y)
+  77            {
+  78   1          unsigned char k;
+  79   1        k=X;
+  80   1          wr_com(0xb0+Y);   // colum
+  81   1           k=k>>4;
+  82   1             wr_com(0x10+k);            // row
+  83   1           wr_com(X&0x0f);
+  84   1        }
+  85          
+  86          
+  87          
+  88          //初始化LCD
+  89          void LCD_init(void)
+  90            {
+  91   1        //初始化动作
+  92   1        delay_nms(100);
+  93   1        RST_LOW;
+  94   1        delay_nms(100);
+  95   1        RST_HIGH;
+  96   1        delay_nms(100);
+  97   1        //初始化动作
+  98   1        
+  99   1        //**********lcd inintial************
+ 100   1        wr_com(0xa0); //ADC normal
+ 101   1        wr_com(0xc8); //com normal
+ 102   1        wr_com(0xa3); //set partial display duty 1/65
+ 103   1        wr_com(0x2c); //vc on
+ 104   1        delay_nms(100);
+ 105   1        wr_com(0x2e); //vr on
+ 106   1        delay_nms(100);
+ 107   1        wr_com(0x2f); //internal booster,follower,divided on
+ 108   1        wr_com(0x24); //set rb/ra=5.29
+ 109   1        wr_com(0x81); //set reference voltage select
+ 110   1        wr_com(0x10);
+ 111   1        delay_nms(100);
+ 112   1        wr_com(0xaf);
+ 113   1        //wr_com(0x7f);
+ 114   1        //wr_com(0x7d);
+ 115   1        wr_com(0x40); //set start line 00
+ 116   1        //************************************
+ 117   1        
+C51 COMPILER V9.51   LCD12864                                                              06/27/2016 11:36:09 PAGE 3   
+
+ 118   1        //display_lattice(0xff,0xff);
+ 119   1        //delay_nms(1000);
+ 120   1        //clearled();
+ 121   1        LCD_clear();
+ 122   1        }
+ 123          void LCD_write1(unsigned char X, unsigned char Y,unsigned char* c,unsigned char with)
+ 124          {
+ 125   1        unsigned char n;
+ 126   1          
+ 127   1          LCD_set_XY(X,Y);                             //设置初始位置
+ 128   1          
+ 129   1      
+ 130   1          for (n=0; n<with*8; n++)              //写一个汉字
+ 131   1          { 
+ 132   2              if (n==with)                      //写汉字的下半部分
+ 133   2              {
+ 134   3                   LCD_set_XY(X,Y+1);
+ 135   3              }
+ 136   2          else if (n==with*2)
+ 137   2          {
+ 138   3            LCD_set_XY(X,Y+2);
+ 139   3          }
+ 140   2          else if (n==with*3)
+ 141   2          {
+ 142   3            LCD_set_XY(X,Y+3);
+ 143   3          }
+ 144   2          else if (n==with*4)
+ 145   2          {
+ 146   3            LCD_set_XY(X,Y+4);
+ 147   3          }
+ 148   2          else if (n==with*5)
+ 149   2          {
+ 150   3            LCD_set_XY(X,Y+5);
+ 151   3          }
+ 152   2          else if (n==with*6)
+ 153   2          {
+ 154   3            LCD_set_XY(X,Y+6);
+ 155   3          }
+ 156   2          else if (n==with*7)
+ 157   2          {
+ 158   3            LCD_set_XY(X,Y+7);
+ 159   3          }
+ 160   2              wr_data(c[n]);
+ 161   2          }
+ 162   1      } 
+ 163          
+ 164          void LCD_write2(unsigned char X, unsigned char Y,unsigned char* c,unsigned char with)
+ 165          {
+ 166   1        unsigned char n;
+ 167   1          
+ 168   1          LCD_set_XY(X,Y);                             //设置初始位置 
+ 169   1          
+ 170   1      
+ 171   1          for (n=0; n<with*2; n++)              //写一个汉字
+ 172   1          { 
+ 173   2              if (n==with)                      //写汉字的下半部分
+ 174   2              {
+ 175   3                   LCD_set_XY(X,Y+1);
+ 176   3              }
+ 177   2              wr_data(c[n]);
+ 178   2          }
+ 179   1      }
+C51 COMPILER V9.51   LCD12864                                                              06/27/2016 11:36:09 PAGE 4   
+
+ 180          void LCD_writek(unsigned char X, unsigned char Y,unsigned char* c,unsigned char with)
+ 181          {
+ 182   1        unsigned char n;
+ 183   1          
+ 184   1          LCD_set_XY(X,Y);                             //设置初始位置 
+ 185   1          
+ 186   1      
+ 187   1          for (n=0; n<with; n++)              //写一个汉字    with为行宽 列为 1列 8个点阵高
+ 188   1          { 
+ 189   2              if (n==with)                      //写汉字的下半部分
+ 190   2              {
+ 191   3                   LCD_set_XY(X,Y+1);
+ 192   3              }
+ 193   2              wr_data(c[n]);
+ 194   2          }
+ 195   1      }     
+ 196          
+ 197          void LCD_write3(unsigned char X, unsigned char Y,unsigned char* c,unsigned char with)
+ 198          {
+ 199   1        unsigned char n;
+ 200   1        LCD_set_XY(X,Y);
+ 201   1        for(n=0;n<89;n++)
+ 202   1        {
+ 203   2          wr_data(c[n]);
+ 204   2        }
+ 205   1      }
+*** WARNING C280 IN LINE 197 OF lcd12864.c: 'with': unreferenced local variable
+ 206          
+ 207          void LCD_digit_M(unsigned char X, unsigned char Y, unsigned char d)
+ 208            {
+ 209   1          unsigned char n;
+ 210   1      
+ 211   1        d-=48;
+ 212   1          
+ 213   1          LCD_set_XY(X,Y);                             //设置初始位置
+ 214   1        for(n=0;n<12;n++)
+ 215   1        {
+ 216   2          if(n==6)
+ 217   2          {
+ 218   3            LCD_set_XY(X,Y+1);
+ 219   3          }
+ 220   2            wr_data(digit_M[d][n]);
+ 221   2        }
+ 222   1        }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    762    ----
+   CONSTANT SIZE    =    120    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----      31
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

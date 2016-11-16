@@ -1,0 +1,18 @@
+C51 COMPILER V9.01   COMDAT                                                                02/06/2013 14:56:01 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE COMDAT
+OBJECT MODULE PLACED IN comdat.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE comdat.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <string.h>
+   2          #include "comdat.h"
+*** ERROR C129 IN LINE 3 OF COMDAT.H: missing ';' before 'total_second'
+   3          #include "stc12c56.h"
+   4          #include "pindef.h"
+   5          
+   6          //ulong         total_second = 0;                       //显示使用时间，单位：秒
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  1 ERROR(S)

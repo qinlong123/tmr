@@ -1,0 +1,7 @@
+"STARTUP.obj",
+"main.obj",
+"lcd12864.obj",
+"bmp.obj",
+"eeprom.obj" 
+TO "MQ135" 
+RAMSIZE(256) 
